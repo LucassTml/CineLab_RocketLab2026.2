@@ -134,6 +134,15 @@ async def test_catalog_card_has_average_and_directors(client, auth_headers) -> N
     assert card["total_avaliacoes"] == 2
     assert card["diretores"] == ["Ana"]
     assert card["generos"] == ["Action"]
+    assert card["url_backdrop"] is None
+
+
+async def test_catalog_card_has_backdrop_for_the_hero(client, auth_headers) -> None:
+    # o carrossel da home usa a imagem de fundo que já vem no card
+    url = "https://image.tmdb.org/t/p/original/fundo.jpg"
+    await create_movie(client, auth_headers, url_backdrop=url)
+    card = (await client.get("/movies")).json()["items"][0]
+    assert card["url_backdrop"] == url
 
 
 async def test_catalog_sorting(client, auth_headers) -> None:
@@ -381,6 +390,15 @@ async def test_genres_list_with_counts(client, auth_headers) -> None:
 
     assert [g["nome"] for g in genres] == ["Action", "Comedy", "Drama"]
     assert {g["nome"]: g["total_filmes"] for g in genres} == {"Action": 1, "Comedy": 0, "Drama": 1}
+
+
+async def test_years_histogram(client, auth_headers) -> None:
+    for ano in (2001, 1999, 2001):
+        await create_movie(client, auth_headers, titulo=f"Filme {ano}", ano_lancamento=ano)
+
+    years = (await client.get("/years")).json()
+
+    assert years == [{"ano": 1999, "total_filmes": 1}, {"ano": 2001, "total_filmes": 2}]
 
 
 async def test_people_autocomplete_ranks_by_movie_count(client, auth_headers) -> None:

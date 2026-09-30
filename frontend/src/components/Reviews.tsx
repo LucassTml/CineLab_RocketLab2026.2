@@ -1,8 +1,9 @@
-// Tudo de avaliações na página do filme: média com histograma, formulário e lista.
+// Tudo de avaliações na página do filme: painel com a média e o histograma,
+// formulário (admin) e a lista de resenhas.
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { MessageSquare, Send, Star, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { type CSSProperties, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useLocation } from 'react-router'
 import { toast } from 'sonner'
@@ -10,48 +11,57 @@ import { toast } from 'sonner'
 import { ApiError } from '../api'
 import { useAuth } from '../auth'
 import { useAddReview, useDeleteReview, useReviews } from '../hooks'
+import { revealRef, useCountUp, useInView } from '../motion'
 import type { Performance, RatingSummary, Review, ReviewSort } from '../types'
 import {
   formatDecimal,
   formatInteger,
   formatRelative,
-  formatStars,
+  initials,
   starsToNota,
   toStars,
 } from '../utils'
 import { MAX_COMMENT, type ReviewFormValues, reviewSchema } from '../validation'
+import { Dropdown } from './Dropdown'
 import { ConfirmDialog, EmptyState, ErrorState, LoadingState } from './Feedback'
 import { Pagination } from './Pagination'
 import { StarRating, StarRatingInput } from './Stars'
 
-interface RatingSummaryCardProps {
+interface RatingPanelProps {
   summary: RatingSummary
   performance: Performance | null
 }
 
-// Média do filme + histograma das notas (10 barras, uma por meia estrela).
-// O valor de cada barra aparece no tooltip.
-export function RatingSummaryCard({ summary, performance }: RatingSummaryCardProps) {
+// Média do filme + histograma (10 barras, uma por meia estrela). As barras
+// crescem quando o painel aparece na tela; o valor de cada uma fica no tooltip.
+export function RatingPanel({ summary, performance }: RatingPanelProps) {
+  const [ref, inView] = useInView<HTMLDivElement>()
+  const stars = toStars(summary.media) ?? 0
+  const shown = useCountUp(stars, inView, 1300)
   const max = Math.max(...summary.distribuicao.map((bucket) => bucket.total), 0)
   const hasRatings = summary.total > 0
+  const bases = [
+    { name: 'TMDB', value: performance?.nota_tmdb, votes: performance?.qtd_tmdb },
+    { name: 'IMDb', value: performance?.nota_imdb, votes: performance?.qtd_imdb },
+  ].filter((base) => base.value != null)
 
   return (
-    <div className="card rating-box">
-      <h2 className="section__title">Média dos usuários</h2>
+    <div className="rating-panel" ref={ref} data-shown={inView || undefined}>
+      <p className="section-label">Nota do público</p>
       {hasRatings ? (
         <>
-          <div className="rating-box__score">
-            <span className="rating-box__value">{formatStars(summary.media)}</span>
-            <span className="rating-box__max">/ 5</span>
+          <div className="rating-panel__score">
+            <span className="rating-panel__value">{formatDecimal(shown)}</span>
+            <span className="rating-panel__max">/ 5</span>
           </div>
-          <StarRating value={toStars(summary.media)} size={22} />
-          <p className="muted">
+          <StarRating value={toStars(summary.media)} size={18} />
+          <p className="rating-panel__count">
             {formatDecimal(summary.media)}/10 · {formatInteger(summary.total)}{' '}
             {summary.total === 1 ? 'avaliação' : 'avaliações'}
           </p>
           <div>
             <div className="histogram" role="list" aria-label="Distribuição das notas">
-              {summary.distribuicao.map((bucket) => {
+              {summary.distribuicao.map((bucket, index) => {
                 const label = `${formatDecimal(bucket.estrelas)}★: ${formatInteger(bucket.total)} ${
                   bucket.total === 1 ? 'avaliação' : 'avaliações'
                 }`
@@ -62,8 +72,13 @@ export function RatingSummaryCard({ summary, performance }: RatingSummaryCardPro
                     tabIndex={0}
                     aria-label={label}
                     data-tip={label}
-                    className={`histogram__bar hit ${bucket.total ? 'histogram__bar--filled' : ''}`}
-                    style={{ height: max ? `${Math.max(3, (bucket.total / max) * 100)}%` : '3%' }}
+                    className={`histogram__bar hit ${bucket.total ? 'is-filled' : ''}`}
+                    style={
+                      {
+                        '--h': max ? Math.max(0.04, bucket.total / max) : 0.04,
+                        '--i': index,
+                      } as CSSProperties
+                    }
                   />
                 )
               })}
@@ -81,24 +96,27 @@ export function RatingSummaryCard({ summary, performance }: RatingSummaryCardPro
           </div>
         </>
       ) : (
-        <p className="muted">Ainda sem avaliações. Que tal ser o primeiro a avaliar?</p>
+        <p className="rating-panel__empty">Ainda sem avaliações. A primeira pode ser a sua.</p>
       )}
 
-      {performance && (performance.nota_tmdb != null || performance.nota_imdb != null) && (
-        <div className="stack" style={{ gap: 6 }}>
-          <h3 className="section__title">Outras bases</h3>
-          {performance.nota_tmdb != null && (
-            <p className="row">
-              <strong>TMDB</strong> {formatDecimal(performance.nota_tmdb)}/10
-              <span className="subtle">({formatInteger(performance.qtd_tmdb)} votos)</span>
-            </p>
-          )}
-          {performance.nota_imdb != null && (
-            <p className="row">
-              <strong>IMDb</strong> {formatDecimal(performance.nota_imdb)}/10
-              <span className="subtle">({formatInteger(performance.qtd_imdb)} votos)</span>
-            </p>
-          )}
+      {bases.length > 0 && (
+        <div className="bases">
+          <p className="section-label">Outras bases</p>
+          {bases.map((base, index) => (
+            <div key={base.name} className="base" style={{ '--v': (base.value ?? 0) / 10, '--i': index } as CSSProperties}>
+              <div className="base__head">
+                <strong>{base.name}</strong>
+                <span>
+                  {formatDecimal(base.value)}
+                  <small>/10</small>
+                </span>
+              </div>
+              <span className="base__track" aria-hidden>
+                <span className="base__fill" />
+              </span>
+              <span className="base__votes">{formatInteger(base.votes)} votos</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -148,8 +166,8 @@ function ReviewForm({ movieId }: { movieId: string }) {
   })
 
   return (
-    <form className="card review-form" onSubmit={onSubmit} noValidate>
-      <h3 className="form-section__title">Adicionar avaliação</h3>
+    <form className="review-form" onSubmit={onSubmit} noValidate>
+      <p className="review-form__title">Sua avaliação</p>
       <div className="field">
         <span className="field__label" id="rating-label">
           Nota<span className="required">*</span>
@@ -197,35 +215,33 @@ function ReviewForm({ movieId }: { movieId: string }) {
         </span>
         {errors.comentario && <span className="field__error">{errors.comentario.message}</span>}
       </div>
-      <div className="row">
-        <span className="spacer" />
-        <button type="submit" className="btn btn--primary" disabled={addReview.isPending}>
-          <Send size={16} /> {addReview.isPending ? 'Publicando...' : 'Publicar avaliação'}
+      <div className="review-form__actions">
+        <button type="submit" className="btn btn--tint" disabled={addReview.isPending}>
+          <Send size={15} /> {addReview.isPending ? 'Publicando...' : 'Publicar avaliação'}
         </button>
       </div>
     </form>
   )
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
-}
-
-function ReviewItem({ review, onDelete }: { review: Review; onDelete?: () => void }) {
+function ReviewItem({ review, index, onDelete }: { review: Review; index: number; onDelete?: () => void }) {
   return (
-    <article className="review">
+    <article className="review" data-reveal="" ref={revealRef} style={{ '--i': index } as CSSProperties}>
       <div className="review__avatar" aria-hidden>
         {initials(review.nome)}
       </div>
-      <div>
+      <div className="review__main">
         <header className="review__header">
           <span className="review__name">{review.nome}</span>
-          <span className="rating-inline">
-            <StarRating value={toStars(review.nota)} size={14} />
+          <span className="review__rating">
+            <StarRating value={toStars(review.nota)} size={13} />
             <span>{formatDecimal(review.nota)}/10</span>
           </span>
-          <time className="review__date" dateTime={review.criado_em} title={new Date(review.criado_em).toLocaleString('pt-BR')}>
+          <time
+            className="review__date"
+            dateTime={review.criado_em}
+            title={new Date(review.criado_em).toLocaleString('pt-BR')}
+          >
             {formatRelative(review.criado_em)}
           </time>
         </header>
@@ -234,11 +250,11 @@ function ReviewItem({ review, onDelete }: { review: Review; onDelete?: () => voi
       {onDelete && (
         <button
           type="button"
-          className="icon-btn icon-btn--danger"
+          className="icon-btn icon-btn--danger review__delete"
           aria-label={`Remover avaliação de ${review.nome}`}
           onClick={onDelete}
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </button>
       )}
     </article>
@@ -274,28 +290,24 @@ export function ReviewSection({ movieId, total }: { movieId: string; total: numb
   }
 
   return (
-    <section className="section" id="avaliacoes" aria-labelledby="reviews-title">
-      <h2 className="section__title" id="reviews-title">
-        <span>Avaliações ({formatInteger(total)})</span>
+    <section className="detail-section" id="avaliacoes" aria-labelledby="reviews-title">
+      <div className="detail-section__head">
+        <h2 className="section-label" id="reviews-title">
+          Avaliações <span className="section-label__count">{formatInteger(total)}</span>
+        </h2>
         {total > 1 && (
-          <select
-            className="select"
-            style={{ width: 'auto', minHeight: 32, textTransform: 'none', letterSpacing: 0 }}
-            aria-label="Ordenar avaliações"
+          <Dropdown
+            label="Ordenar"
             value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as ReviewSort)
+            options={REVIEW_SORTS}
+            align="end"
+            onChange={(value) => {
+              setSort(value)
               setPage(1)
             }}
-          >
-            {REVIEW_SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         )}
-      </h2>
+      </div>
 
       {isAdmin ? (
         <ReviewForm movieId={movieId} />
@@ -312,17 +324,18 @@ export function ReviewSection({ movieId, total }: { movieId: string; total: numb
         <ErrorState error={reviews.error} onRetry={() => void reviews.refetch()} />
       ) : reviews.data.items.length === 0 ? (
         <EmptyState
-          icon={<MessageSquare size={26} />}
+          icon={<MessageSquare size={22} strokeWidth={1.5} />}
           title="Nenhuma resenha ainda"
           description="As avaliações publicadas aparecem aqui."
         />
       ) : (
         <div className={reviews.isPlaceholderData ? 'is-fetching' : undefined}>
           <div className="review-list">
-            {reviews.data.items.map((review) => (
+            {reviews.data.items.map((review, index) => (
               <ReviewItem
                 key={review.id}
                 review={review}
+                index={index}
                 onDelete={isAdmin ? () => setToDelete(review) : undefined}
               />
             ))}

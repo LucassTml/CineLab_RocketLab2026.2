@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 
 import { formatInteger, getPageItems } from '../utils'
@@ -9,6 +9,8 @@ interface PaginationProps {
   onChange: (page: number) => void
 }
 
+// Anterior / números / próxima, com um campo para pular direto para uma página.
+// A página atual tem um traço embaixo; "primeira" e "última" estão nos números.
 export function Pagination({ page, pages, onChange }: PaginationProps) {
   const [jump, setJump] = useState('')
   if (pages <= 1) return null
@@ -28,59 +30,43 @@ export function Pagination({ page, pages, onChange }: PaginationProps) {
     <nav className="pagination" aria-label="Paginação">
       <button
         type="button"
-        className="pagination__btn"
-        onClick={() => go(1)}
-        disabled={page === 1}
-        aria-label="Primeira página"
-      >
-        <ChevronsLeft size={16} />
-      </button>
-      <button
-        type="button"
-        className="pagination__btn"
+        className="pagination__step"
         onClick={() => go(page - 1)}
         disabled={page === 1}
         aria-label="Página anterior"
       >
-        <ChevronLeft size={16} />
+        <ArrowLeft size={15} /> <span>Anterior</span>
       </button>
 
-      {getPageItems(page, pages).map((item) =>
-        typeof item === 'number' ? (
-          <button
-            key={item}
-            type="button"
-            className="pagination__btn"
-            aria-current={item === page ? 'page' : undefined}
-            aria-label={`Página ${item}`}
-            onClick={() => go(item)}
-          >
-            {formatInteger(item)}
-          </button>
-        ) : (
-          <span key={item} className="pagination__ellipsis" aria-hidden>
-            ...
-          </span>
-        ),
-      )}
+      <div className="pagination__pages">
+        {getPageItems(page, pages).map((item) =>
+          typeof item === 'number' ? (
+            <button
+              key={item}
+              type="button"
+              className="pagination__page"
+              aria-current={item === page ? 'page' : undefined}
+              aria-label={`Página ${item}`}
+              onClick={() => go(item)}
+            >
+              {formatInteger(item)}
+            </button>
+          ) : (
+            <span key={item} className="pagination__ellipsis" aria-hidden>
+              …
+            </span>
+          ),
+        )}
+      </div>
 
       <button
         type="button"
-        className="pagination__btn"
+        className="pagination__step"
         onClick={() => go(page + 1)}
         disabled={page === pages}
         aria-label="Próxima página"
       >
-        <ChevronRight size={16} />
-      </button>
-      <button
-        type="button"
-        className="pagination__btn"
-        onClick={() => go(pages)}
-        disabled={page === pages}
-        aria-label="Última página"
-      >
-        <ChevronsRight size={16} />
+        <span>Próxima</span> <ArrowRight size={15} />
       </button>
 
       <form className="pagination__jump" onSubmit={submitJump}>

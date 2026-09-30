@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { lazy, type ReactNode, Suspense } from 'react'
 import { Link, Route, Routes } from 'react-router'
 
+import { useAmbient } from './components/Ambient'
 import { EmptyState, LoadingState } from './components/Feedback'
 import { AppLayout, RequireAdmin } from './components/Layout'
 import { CatalogPage } from './pages/CatalogPage'
@@ -25,14 +26,18 @@ const MovieEditPage = lazy(() =>
 const page = (element: ReactNode) => <Suspense fallback={<LoadingState />}>{element}</Suspense>
 
 function NotFoundPage() {
+  useAmbient(null)
   return (
-    <div className="container">
+    <div className="container page-pad not-found">
+      <p className="not-found__code" aria-hidden>
+        404
+      </p>
       <EmptyState
         title="Página não encontrada"
-        description="O endereço acessado não existe."
+        description="O endereço acessado não existe (ou o filme saiu de cartaz)."
         action={
-          <Link to="/" className="btn">
-            <ArrowLeft size={16} /> Ir para o catálogo
+          <Link to="/" className="btn btn--ghost">
+            <ArrowLeft size={15} /> Ir para o catálogo
           </Link>
         }
       />

@@ -1,7 +1,7 @@
 // Hooks da aplicação:
 // - consultas e mutações com React Query (cache no navegador)
 // - filtros do catálogo guardados na URL
-// - debounce, título da aba e tema claro/escuro
+// - debounce e título da aba
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -31,6 +31,8 @@ export const queryKeys = {
   reviews: (id: string, page: number, sort: ReviewSort) =>
     ['movie', id, 'reviews', page, sort] as const,
   genres: ['genres'] as const,
+  years: ['years'] as const,
+  featured: ['featured'] as const,
   stats: ['stats'] as const,
   person: (id: string) => ['person', id] as const,
   company: (id: string) => ['company', id] as const,
@@ -72,6 +74,23 @@ export function useGenres() {
   return useQuery({ queryKey: queryKeys.genres, queryFn: api.listGenres, staleTime: 10 * 60_000 })
 }
 
+// quantidade de filmes por ano (histograma do filtro de ano)
+export function useYears() {
+  return useQuery({ queryKey: queryKeys.years, queryFn: api.listYears, staleTime: 10 * 60_000 })
+}
+
+// Os mais populares: alimentam o carrossel de destaques, as sugestões da busca
+// rápida e o mosaico de pôsteres do login.
+export function useFeatured(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.featured,
+    queryFn: ({ signal }) =>
+      api.listMovies({ sort: 'popularidade', order: 'desc', page_size: 24 }, signal),
+    staleTime: 5 * 60_000,
+    enabled,
+  })
+}
+
 export function useStats() {
   return useQuery({ queryKey: queryKeys.stats, queryFn: api.stats })
 }
@@ -102,6 +121,8 @@ function useInvalidateLists() {
     void client.invalidateQueries({ queryKey: queryKeys.allMovies })
     void client.invalidateQueries({ queryKey: queryKeys.stats })
     void client.invalidateQueries({ queryKey: queryKeys.genres })
+    void client.invalidateQueries({ queryKey: queryKeys.years })
+    void client.invalidateQueries({ queryKey: queryKeys.featured })
   }
 }
 
@@ -280,29 +301,4 @@ export function useDocumentTitle(title: string | null | undefined): void {
   useEffect(() => {
     document.title = title ? `${title} | CineLab` : 'CineLab'
   }, [title])
-}
-
-type Theme = 'light' | 'dark'
-
-function currentTheme(): Theme {
-  const saved = document.documentElement.dataset.theme
-  if (saved === 'light' || saved === 'dark') return saved
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
-
-// Segue o tema do sistema até o usuário escolher um; a escolha fica salva.
-export function useTheme(): [Theme, () => void] {
-  const [theme, setTheme] = useState<Theme>(currentTheme)
-
-  const toggle = () => {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark'
-    document.documentElement.dataset.theme = next
-    try {
-      localStorage.setItem('cinelab:theme', next)
-    } catch {
-      // localStorage bloqueado (aba anônima): vale só até fechar
-    }
-    setTheme(next)
-  }
-  return [theme, toggle]
 }

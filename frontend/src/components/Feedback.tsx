@@ -1,6 +1,6 @@
 // Estados de tela (vazio, erro, carregando) e o diálogo de confirmação.
 
-import { LoaderCircle, RotateCcw, SearchX, TriangleAlert } from 'lucide-react'
+import { RotateCcw, SearchX, TriangleAlert } from 'lucide-react'
 import { type ReactNode, useEffect, useRef } from 'react'
 
 import { ApiError } from '../api'
@@ -15,9 +15,9 @@ interface EmptyStateProps {
 export function EmptyState({ title, description, action, icon }: EmptyStateProps) {
   return (
     <div className="state">
-      <div className="state__icon">{icon ?? <SearchX size={26} />}</div>
+      <div className="state__icon">{icon ?? <SearchX size={22} strokeWidth={1.5} />}</div>
       <p className="state__title">{title}</p>
-      {description && <p>{description}</p>}
+      {description && <p className="state__text">{description}</p>}
       {action}
     </div>
   )
@@ -28,24 +28,25 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   return (
     <div className="state" role="alert">
       <div className="state__icon">
-        <TriangleAlert size={26} />
+        <TriangleAlert size={22} strokeWidth={1.5} />
       </div>
       <p className="state__title">Não foi possível carregar</p>
-      <p>{message}</p>
+      <p className="state__text">{message}</p>
       {onRetry && (
-        <button type="button" className="btn" onClick={onRetry}>
-          <RotateCcw size={16} /> Tentar de novo
+        <button type="button" className="btn btn--ghost" onClick={onRetry}>
+          <RotateCcw size={15} /> Tentar de novo
         </button>
       )}
     </div>
   )
 }
 
+// Uma linha fina com um traço correndo (no lugar do spinner redondo).
 export function LoadingState({ label = 'Carregando...' }: { label?: string }) {
   return (
-    <div className="state" role="status">
-      <LoaderCircle size={28} className="spinner" aria-hidden />
-      <p>{label}</p>
+    <div className="state state--loading" role="status">
+      <span className="loader" aria-hidden />
+      <p className="state__text">{label}</p>
     </div>
   )
 }
@@ -60,7 +61,7 @@ interface ConfirmDialogProps {
   onCancel: () => void
 }
 
-// Usa o <dialog> nativo do HTML (já trava o foco e fecha com Esc).
+// Usa o <dialog> nativo do HTML (já prende o foco e fecha com Esc).
 export function ConfirmDialog({
   open,
   title,
@@ -93,12 +94,12 @@ export function ConfirmDialog({
         <>
           <div className="dialog__body">
             <div className="dialog__icon">
-              <TriangleAlert size={22} />
+              <TriangleAlert size={20} strokeWidth={1.6} />
             </div>
-            <h2 id="confirm-title" className="state__title">
+            <h2 id="confirm-title" className="dialog__title">
               {title}
             </h2>
-            <div className="muted">{description}</div>
+            <div className="dialog__text">{description}</div>
           </div>
           <div className="dialog__actions">
             <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>

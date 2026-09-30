@@ -116,6 +116,7 @@ class MovieSummary(BaseModel):
     duracao_minutos: int | None
     status_filme: str | None
     url_poster: str | None
+    url_backdrop: str | None
     generos: list[str]
     diretores: list[str]
     popularidade: float | None

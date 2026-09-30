@@ -30,7 +30,12 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <App />
-          <Toaster richColors position="bottom-right" closeButton />
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            closeButton
+            toastOptions={{ className: 'toast' }}
+          />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

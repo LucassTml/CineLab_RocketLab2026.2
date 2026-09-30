@@ -22,8 +22,4 @@ htmlcov/
 # CSVs da atividade (~230 MB)
 data/
 
-# build do Storybook (gerado com npm run build-storybook)
-docs/storybook/build/
-debug-storybook.log
-
 .claude/

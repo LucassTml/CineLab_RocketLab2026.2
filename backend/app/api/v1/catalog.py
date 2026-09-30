@@ -4,6 +4,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,7 @@ from app.db.session import get_db
 from app.movies.models import (
     DimCompany,
     DimGenre,
+    DimMovie,
     DimPerson,
     bridge_movie_company,
     bridge_movie_genre,
@@ -37,6 +39,11 @@ class CompanySuggestion(CompanyRead):
     total_filmes: int
 
 
+class YearCount(BaseModel):
+    ano: int
+    total_filmes: int
+
+
 async def _movie_counts(session: AsyncSession, key_column, ids: list[str]) -> dict[str, int]:
     if not ids:
         return {}
@@ -51,14 +58,17 @@ async def _search_by_name(session, name_column, id_attr, bridge_key, base, q, li
 
     Ordena por número de filmes, então "nolan" traz primeiro quem tem mais
     filmes no catálogo. autoescape faz % e _ serem texto normal no LIKE.
+    No SQLite o LIKE já ignora maiúsculas/minúsculas, então uso startswith e
+    contains em vez de istartswith/icontains: o lower() que eles colocam em
+    cada nome deixava a busca nas 420 mil pessoas duas vezes mais lenta.
     """
     candidates = (
         await session.scalars(
             base.where(
                 or_(
-                    name_column.istartswith(q, autoescape=True),
-                    name_column.icontains(f" {q}", autoescape=True),
-                    name_column.icontains(f"-{q}", autoescape=True),
+                    name_column.startswith(q, autoescape=True),
+                    name_column.contains(f" {q}", autoescape=True),
+                    name_column.contains(f"-{q}", autoescape=True),
                 )
             ).limit(CANDIDATES)
         )
@@ -93,6 +103,21 @@ async def list_genres(session: SessionDep):
         return [GenreWithCount(id=i, nome=n, total_filmes=c) for i, n, c in rows]
 
     return await query_cache.get_or_set("genres", compute)
+
+
+@router.get("/years", response_model=list[YearCount], summary="Filmes por ano")
+async def list_years(session: SessionDep):
+    # usado no histograma do filtro de ano (barras atrás do controle deslizante)
+    async def compute():
+        rows = await session.execute(
+            select(DimMovie.ano_lancamento, func.count())
+            .where(DimMovie.ano_lancamento.is_not(None))
+            .group_by(DimMovie.ano_lancamento)
+            .order_by(DimMovie.ano_lancamento)
+        )
+        return [YearCount(ano=ano, total_filmes=total) for ano, total in rows]
+
+    return await query_cache.get_or_set("years", compute)
 
 
 @router.get("/people", response_model=list[PersonSuggestion], summary="Busca pessoas")

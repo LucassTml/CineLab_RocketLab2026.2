@@ -23,6 +23,11 @@ export interface GenreWithCount extends Genre {
   total_filmes: number
 }
 
+export interface YearCount {
+  ano: number
+  total_filmes: number
+}
+
 export interface Person {
   id: string
   nome: string
@@ -76,6 +81,7 @@ export interface MovieSummary {
   duracao_minutos: number | null
   status_filme: string | null
   url_poster: string | null
+  url_backdrop: string | null
   generos: string[]
   diretores: string[]
   popularidade: number | null
@@ -187,7 +193,7 @@ export interface StatsOverview {
   media_geral: number | null
   distribuicao: RatingBucket[]
   generos: GenreStat[]
-  filmes_por_ano: { ano: number; total_filmes: number }[]
+  filmes_por_ano: YearCount[]
   mais_bem_avaliados: RankedMovie[]
   mais_avaliados: MovieSummary[]
   ultimas_avaliacoes: LatestReview[]

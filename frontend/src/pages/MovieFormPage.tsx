@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 
@@ -18,12 +19,17 @@ export function MovieCreatePage() {
   }
 
   return (
-    <div className="container">
+    <div className="container page-pad">
       <header className="page-header">
-        <div>
-          <h1 className="page-title">Cadastrar filme</h1>
-          <p className="page-subtitle">Campos com * são obrigatórios.</p>
-        </div>
+        <p className="eyebrow" data-enter="">
+          Administração
+        </p>
+        <h1 className="page-title" data-enter="" style={{ '--d': '80ms' } as CSSProperties}>
+          Cadastrar filme
+        </h1>
+        <p className="page-subtitle" data-enter="" style={{ '--d': '160ms' } as CSSProperties}>
+          Campos com * são obrigatórios.
+        </p>
       </header>
       <MovieForm submitLabel="Cadastrar filme" cancelTo="/" onSubmit={handleSubmit} />
     </div>
@@ -40,7 +46,7 @@ export function MovieEditPage() {
   if (movie.isPending) return <LoadingState />
   if (movie.isError) {
     return (
-      <div className="container">
+      <div className="container page-pad">
         <ErrorState error={movie.error} onRetry={() => void movie.refetch()} />
       </div>
     )
@@ -53,12 +59,17 @@ export function MovieEditPage() {
   }
 
   return (
-    <div className="container">
+    <div className="container page-pad">
       <header className="page-header">
-        <div>
-          <h1 className="page-title">Editar filme</h1>
-          <p className="page-subtitle">{movie.data.titulo}</p>
-        </div>
+        <p className="eyebrow" data-enter="">
+          Administração
+        </p>
+        <h1 className="page-title" data-enter="" style={{ '--d': '80ms' } as CSSProperties}>
+          Editar filme
+        </h1>
+        <p className="page-subtitle" data-enter="" style={{ '--d': '160ms' } as CSSProperties}>
+          {movie.data.titulo}
+        </p>
       </header>
       <MovieForm
         key={movie.data.id}

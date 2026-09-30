@@ -86,6 +86,17 @@ export function resizeTmdbImage(url: string | null | undefined, size: string): s
   return url.replace(/\/t\/p\/(w\d+|original)\//, `/t/p/${size}/`)
 }
 
+// "Fernanda Torres" -> "FT" (avatar das avaliações e do elenco)
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? '') : ''
+  return (first + last).toUpperCase()
+}
+
+// 7 -> "07" (contadores do carrossel e das listas numeradas)
+export const pad2 = (value: number) => String(value).padStart(2, '0')
+
 export type PageItem = number | 'ellipsis-start' | 'ellipsis-end'
 
 // Números que aparecem na paginação: 1 ... 49 50 51 ... 3986

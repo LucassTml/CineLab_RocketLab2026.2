@@ -3,11 +3,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { Save, X } from 'lucide-react'
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
+import { type CSSProperties, type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
 
 import { api, ApiError } from '../api'
+import { useMovieTint } from '../color'
+import { genreLabel } from '../genres'
 import { useDebouncedValue, useGenres } from '../hooks'
 import { type MovieDetail, type MoviePayload, type PersonType, STATUS_FILME } from '../types'
 import { formatInteger, resizeTmdbImage } from '../utils'
@@ -19,6 +21,7 @@ import {
   type MovieFormValues,
   movieToFormValues,
 } from '../validation'
+import { useAmbient } from './Ambient'
 import { Poster } from './MovieCard'
 
 const peopleFetcher = (tipo: PersonType) => (q: string, signal?: AbortSignal) =>
@@ -75,6 +78,17 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
     control,
     name: ['titulo', 'ano_lancamento', 'url_poster', 'url_backdrop', 'sinopse'],
   })
+  // a cor do pôster digitado tinge a pré-visualização e o fundo da página
+  const posterUrl = useDebouncedValue(poster.trim(), 400)
+  const tint = useMovieTint(
+    /^https?:\/\//.test(posterUrl) ? { titulo: 'pôster', url_poster: posterUrl } : null,
+  )
+  useAmbient(tint ?? null, null, 'soft')
+
+  const sortedGenres = [...(genres.data ?? [])].sort((a, b) =>
+    genreLabel(a.nome).localeCompare(genreLabel(b.nome), 'pt-BR'),
+  )
+
   const fieldError = (name: keyof MovieFormValues) =>
     errors[name]?.message ? <span className="field__error">{errors[name]?.message}</span> : null
 
@@ -89,7 +103,9 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
           )}
 
           <section className="card form-section">
-            <h2 className="form-section__title">Informações básicas</h2>
+            <h2 className="form-section__title">
+              <span className="form-section__num">01</span> Informações básicas
+            </h2>
             <div className="field">
               <label className="field__label" htmlFor="titulo">
                 Título<span className="required">*</span>
@@ -179,19 +195,21 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
           </section>
 
           <section className="card form-section">
-            <h2 className="form-section__title">Gêneros</h2>
+            <h2 className="form-section__title">
+              <span className="form-section__num">02</span> Gêneros
+            </h2>
             <Controller
               control={control}
               name="genero_ids"
               render={({ field }) => (
-                <div className="chip-list" role="group" aria-label="Gêneros">
-                  {(genres.data ?? []).map((genre) => {
+                <div className="tags" role="group" aria-label="Gêneros">
+                  {sortedGenres.map((genre) => {
                     const checked = field.value.includes(genre.id)
                     return (
                       <button
                         key={genre.id}
                         type="button"
-                        className={`chip ${checked ? 'chip--active' : ''}`}
+                        className={`tag ${checked ? 'is-active' : ''}`}
                         aria-pressed={checked}
                         onClick={() =>
                           field.onChange(
@@ -201,7 +219,7 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
                           )
                         }
                       >
-                        {genre.nome}
+                        {genreLabel(genre.nome)}
                       </button>
                     )
                   })}
@@ -211,7 +229,9 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
           </section>
 
           <section className="card form-section">
-            <h2 className="form-section__title">Equipe e elenco</h2>
+            <h2 className="form-section__title">
+              <span className="form-section__num">03</span> Equipe e elenco
+            </h2>
             <Controller
               control={control}
               name="diretores"
@@ -272,7 +292,9 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
           </section>
 
           <section className="card form-section">
-            <h2 className="form-section__title">Imagens</h2>
+            <h2 className="form-section__title">
+              <span className="form-section__num">04</span> Imagens
+            </h2>
             <div className="field">
               <label className="field__label" htmlFor="url_poster">
                 URL do pôster
@@ -304,9 +326,13 @@ export function MovieForm({ initial, submitLabel, cancelTo, onSubmit }: MovieFor
           </section>
         </div>
 
-        <aside className="form-preview" aria-label="Pré-visualização">
+        <aside
+          className="form-preview"
+          aria-label="Pré-visualização"
+          style={tint ? ({ '--tint': tint } as CSSProperties) : undefined}
+        >
           <div>
-            <p className="field__label" style={{ marginBottom: 8 }}>
+            <p className="field__label" style={{ marginBottom: 10 }}>
               Pré-visualização
             </p>
             {/* key: recria o pôster quando a URL muda (limpa o erro de imagem) */}
@@ -457,21 +483,21 @@ function TagInput({
         />
       </div>
       {showList && (
-        <ul id={listId} className="search__dropdown" role="listbox">
+        <ul id={listId} className="suggest tag-input__dropdown" role="listbox">
           {options.map((option, index) => (
             <li
               key={option.id}
               id={`${listId}-${index}`}
               role="option"
               aria-selected={index === active}
-              className="search__option"
+              className="suggest__option"
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setActive(index)}
               onClick={() => add(option.nome)}
             >
-              <span className="search__option-text">
-                <span className="search__option-title">{option.nome}</span>
-                <span className="search__option-sub">
+              <span className="suggest__text">
+                <span className="suggest__title">{option.nome}</span>
+                <span className="suggest__sub">
                   {formatInteger(option.total_filmes)} filme(s) no catálogo
                 </span>
               </span>

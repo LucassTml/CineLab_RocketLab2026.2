@@ -9,7 +9,10 @@ adiciona notas e resenhas.
 - **Banco de dados:** SQLite
 - **Frontend:** React + TypeScript com Vite
 
-O motivo de cada escolha está em [docs/ESCOLHAS.md](docs/ESCOLHAS.md).
+A explicação completa do projeto (como ele atende a atividade, o porquê das
+escolhas, como as principais funções funcionam e o caminho até aqui) está em
+[docs/PROJETO.md](docs/PROJETO.md). Um resumo curto das escolhas de tecnologia
+está em [docs/ESCOLHAS.md](docs/ESCOLHAS.md).
 
 ## Funcionalidades
 
@@ -25,7 +28,9 @@ Requisitos da atividade:
 
 Extras: login do administrador (JWT), filtros (gênero, ano, nota, status,
 pessoa e produtora), ordenação, dashboard com gráficos, filmes semelhantes,
-tema claro/escuro, layout para celular, cache e testes.
+carrossel de destaques, busca rápida (Ctrl+K ou "/"), layout para celular,
+cache e testes. Ao abrir um filme, a cor do pôster se espalha pela tela e vira
+o fundo da página dele (explicado em [docs/PROJETO.md](docs/PROJETO.md#59-visual)).
 
 ## Estrutura
 
@@ -47,8 +52,11 @@ frontend/
     tests/        testes (Vitest)
     api.ts        chamadas para a API
     hooks.ts      React Query, filtros na URL e outros hooks
+    color.ts      cor predominante do pôster (usada no fundo e na transição)
+    motion.ts     animações ligadas à rolagem
 docs/
-  ESCOLHAS.md     explicação das escolhas
+  PROJETO.md      documentação completa do projeto
+  ESCOLHAS.md     resumo das escolhas
 ```
 
 ## Como executar
@@ -86,6 +94,16 @@ No Linux/macOS é igual, trocando a ativação por `source .venv/bin/activate` e
 
 A API fica em http://localhost:8000 e a documentação (Swagger) em
 http://localhost:8000/docs.
+
+**Windows bloqueou o SQLAlchemy?** Se aparecer `DLL load failed while importing
+_immutabledict_cy` com "política de Controle de Aplicativo", é o Smart App
+Control do Windows barrando as partes compiladas do SQLAlchemy. A versão só em
+Python funciona igual (com o venv ativo):
+
+```powershell
+pip download sqlalchemy==2.1.1 --no-deps --only-binary=:all: --platform any -d wheels
+pip install --force-reinstall --no-deps wheels\sqlalchemy-2.1.1-py3-none-any.whl
+```
 
 ### 3. Frontend (terminal 2)
 
@@ -133,5 +151,5 @@ Todas começam com `/api/v1`. As marcadas com (admin) precisam do token.
 - `GET /movies/{id}/reviews`: avaliações do filme
 - `POST /movies/{id}/reviews` (admin): nova avaliação
 - `DELETE /movies/{id}/reviews/{review_id}` (admin): remove avaliação
-- `GET /genres`, `GET /people`, `GET /companies`: usados nos filtros e no formulário
+- `GET /genres`, `GET /years`, `GET /people`, `GET /companies`: usados nos filtros e no formulário
 - `GET /stats`: dados do dashboard

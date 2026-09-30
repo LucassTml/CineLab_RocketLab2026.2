@@ -44,8 +44,7 @@ CSVs leva mais ou menos 1 minuto).
 ## React (frontend)
 
 Separei a interface em componentes reutilizáveis (card de filme, estrelas,
-paginação, avaliações), que também aparecem no Storybook. Bibliotecas que usei
-junto:
+paginação, avaliações). Bibliotecas que usei junto:
 
 - React Router para as páginas. Os filtros do catálogo ficam na URL, então o
   botão voltar funciona e dá para mandar o link de uma busca para alguém.
@@ -61,8 +60,8 @@ junto:
   ao salvar o arquivo.
 - Proxy no `vite.config.ts`: o frontend chama `/api` e o Vite repassa para o
   FastAPI na porta 8000, então em desenvolvimento não tem problema de CORS.
-- Os testes (Vitest) e o Storybook usam o próprio Vite, então é uma
-  configuração só para tudo.
+- Os testes (Vitest) usam o próprio Vite, então é uma configuração só para
+  rodar o site e os testes.
 - As páginas além do catálogo são carregadas só quando abertas (lazy).
 
 ## Outras decisões
@@ -80,5 +79,5 @@ junto:
   de pessoas vieram trocadas (diretor "English", ator "7.8"), e removi esses
   vínculos; várias sinopses e títulos vieram com aspas duplicadas e numerais
   romanos errados ("Grizzly Ii"). Tudo isso é tratado no `backend/app/seed.py`.
-- **Testes**: pytest no backend (61 testes, rodando as migrações de verdade num
-  banco temporário) e Vitest no frontend (33 testes).
+- **Testes**: pytest no backend (63 testes, rodando as migrações de verdade num
+  banco temporário) e Vitest no frontend (43 testes).

@@ -264,6 +264,7 @@ async def build_summaries(session: AsyncSession, rows: Sequence[Any]) -> list[Mo
             duracao_minutos=movie.duracao_minutos,
             status_filme=movie.status_filme,
             url_poster=movie.url_poster,
+            url_backdrop=movie.url_backdrop,
             generos=genres.get(movie.sk_movie_id, []),
             diretores=directors.get(movie.sk_movie_id, []),
             popularidade=popularity,

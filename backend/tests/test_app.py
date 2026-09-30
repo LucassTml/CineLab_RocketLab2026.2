@@ -67,5 +67,5 @@ async def test_protected_route_rejects_bad_tokens(client) -> None:
 
 
 async def test_read_routes_are_public(client) -> None:
-    for path in ("/movies", "/genres", "/stats"):
+    for path in ("/movies", "/genres", "/years", "/stats"):
         assert (await client.get(path)).status_code == 200, path

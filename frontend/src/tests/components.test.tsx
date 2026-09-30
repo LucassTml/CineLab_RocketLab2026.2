@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
+import { Dropdown } from '../components/Dropdown'
 import { MovieCard } from '../components/MovieCard'
 import { Pagination } from '../components/Pagination'
 import { StarRating, StarRatingInput } from '../components/Stars'
@@ -55,7 +56,7 @@ describe('Pagination', () => {
     expect(screen.getByRole('button', { name: 'Página 5' })).toHaveAttribute('aria-current', 'page')
     await userEvent.click(screen.getByRole('button', { name: 'Próxima página' }))
     expect(onChange).toHaveBeenCalledWith(6)
-    await userEvent.click(screen.getByRole('button', { name: 'Última página' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Página 10' })) // última
     expect(onChange).toHaveBeenCalledWith(10)
   })
 
@@ -83,6 +84,7 @@ describe('MovieCard', () => {
     duracao_minutos: 137,
     status_filme: 'Lançado',
     url_poster: null,
+    url_backdrop: null,
     generos: ['Drama'],
     diretores: ['Walter Salles'],
     popularidade: 10,
@@ -100,8 +102,18 @@ describe('MovieCard', () => {
     expect(screen.getByRole('heading', { name: 'Ainda Estou Aqui' })).toBeInTheDocument()
     expect(screen.getByText(/2024 · Walter Salles/)).toBeInTheDocument()
     expect(screen.getByTitle('3 avaliação(ões)')).toHaveTextContent('4,5') // 9/10 = 4,5 estrelas
+    expect(screen.getByText('Drama')).toBeInTheDocument()
     // Sem pôster: cai no cartão de fallback com o título.
     expect(screen.getByRole('img', { name: 'Ainda Estou Aqui' })).toBeInTheDocument()
+  })
+
+  it('mostra a duração quando o filme veio sem gênero', () => {
+    render(
+      <MemoryRouter>
+        <MovieCard movie={{ ...movie, generos: [] }} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('2h 17min')).toBeInTheDocument()
   })
 
   it('indica filmes sem avaliações', () => {
@@ -111,5 +123,46 @@ describe('MovieCard', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText(/sem notas/)).toBeInTheDocument()
+  })
+})
+
+describe('Dropdown', () => {
+  const options = [
+    { value: 'populares', label: 'Mais populares' },
+    { value: 'recentes', label: 'Mais recentes' },
+    { value: 'titulo', label: 'Título (A–Z)' },
+  ]
+
+  it('abre a lista, marca a opção atual e escolhe com o mouse', async () => {
+    const onChange = vi.fn()
+    render(<Dropdown label="Ordenar" value="populares" options={options} onChange={onChange} />)
+    const button = screen.getByRole('button', { name: /Ordenar/ })
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+
+    await userEvent.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('option', { name: 'Mais populares' })).toHaveAttribute('aria-selected', 'true')
+
+    await userEvent.click(screen.getByRole('option', { name: 'Título (A–Z)' }))
+    expect(onChange).toHaveBeenCalledWith('titulo')
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('funciona pelo teclado e fecha com Esc devolvendo o foco', async () => {
+    const onChange = vi.fn()
+    render(<Dropdown label="Ordenar" value="populares" options={options} onChange={onChange} />)
+    const button = screen.getByRole('button', { name: /Ordenar/ })
+
+    button.focus()
+    await userEvent.keyboard('{ArrowDown}') // abre na opção atual
+    expect(screen.getByRole('listbox')).toHaveFocus()
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    expect(onChange).toHaveBeenCalledWith('recentes')
+
+    await userEvent.click(button)
+    await userEvent.keyboard('{Escape}')
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveFocus()
+    expect(onChange).toHaveBeenCalledTimes(1)
   })
 })

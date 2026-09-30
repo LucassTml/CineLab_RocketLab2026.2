@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { canReadPixels, dominantColor, hashColor, inkFor } from '../color'
+import { genreLabel } from '../genres'
 import { countActiveFilters, parseCatalogParams, serializeCatalogParams } from '../hooks'
 import {
   formatDate,
@@ -7,6 +9,8 @@ import {
   formatRuntime,
   formatStars,
   getPageItems,
+  initials,
+  pad2,
   resizeTmdbImage,
   starsToNota,
   toStars,
@@ -158,5 +162,59 @@ describe('conversão para o payload da API', () => {
       url_poster: null,
       diretores: ['Ana'],
     })
+  })
+})
+
+describe('cor do pôster', () => {
+  // pixels no formato do canvas (R, G, B, A...): [quantidade, cor]
+  const pixels = (...groups: [number, [number, number, number]][]) =>
+    groups.flatMap(([count, [r, g, b]]) => Array.from({ length: count }, () => [r, g, b, 255]).flat())
+  const channels = (hex: string) => [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16))
+
+  it('fica com a cor viva e ignora preto, branco e cinza', () => {
+    const color = dominantColor(
+      pixels([300, [10, 10, 10]], [200, [240, 240, 240]], [150, [120, 120, 120]], [120, [200, 40, 30]]),
+    )
+    expect(color).toMatch(/^#[0-9a-f]{6}$/)
+    const [r, g, b] = channels(color!)
+    expect(r).toBeGreaterThan(g + 60) // continua vermelho...
+    expect(r).toBeGreaterThan(b + 60)
+    expect(r).toBeLessThan(230) // ...mas ajustado para fundo escuro
+  })
+
+  it('devolve null quando a imagem não tem cor', () => {
+    expect(dominantColor(pixels([500, [30, 30, 30]], [500, [200, 200, 200]]))).toBeNull()
+  })
+
+  it('gera sempre a mesma cor para o mesmo título', () => {
+    expect(hashColor('Matrix')).toBe(hashColor('Matrix'))
+    expect(hashColor('Matrix')).toMatch(/^#[0-9a-f]{6}$/)
+    expect(hashColor('Matrix')).not.toBe(hashColor('Toy Story'))
+  })
+
+  it('escolhe texto escuro sobre cor clara e claro sobre cor escura', () => {
+    expect(inkFor('#e7d8a8')).toBe('#141414')
+    expect(inkFor('#3b2a6b')).toBe('#f7f5f0')
+  })
+
+  it('só lê os pixels de imagens do TMDB (que liberam CORS)', () => {
+    expect(canReadPixels('https://image.tmdb.org/t/p/w92/abc.jpg')).toBe(true)
+    expect(canReadPixels('https://exemplo.com/poster.jpg')).toBe(false)
+  })
+})
+
+describe('textos da interface', () => {
+  it('traduz os gêneros do TMDB e mantém os desconhecidos', () => {
+    expect(genreLabel('Science Fiction')).toBe('Ficção científica')
+    expect(genreLabel('Horror')).toBe('Terror')
+    expect(genreLabel('Kaiju')).toBe('Kaiju')
+  })
+
+  it('monta as iniciais e os números com dois dígitos', () => {
+    expect(initials('Fernanda Torres')).toBe('FT')
+    expect(initials('  Selton  ')).toBe('S')
+    expect(initials('Walter Moreira Salles')).toBe('WS')
+    expect(pad2(7)).toBe('07')
+    expect(pad2(12)).toBe('12')
   })
 })

@@ -16,6 +16,7 @@ import type {
   ReviewSort,
   StatsOverview,
   TokenResponse,
+  YearCount,
 } from './types'
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
@@ -147,6 +148,7 @@ export const api = {
     request<void>(`/movies/${id(movieId)}/reviews/${id(reviewId)}`, { method: 'DELETE' }),
 
   listGenres: () => request<GenreWithCount[]>('/genres'),
+  listYears: () => request<YearCount[]>('/years'),
   searchPeople: (q: string, tipo?: PersonType, signal?: AbortSignal) =>
     request<PersonSuggestion[]>('/people', { params: { q, tipo, limit: 8 }, signal }),
   getPerson: (personId: string) => request<PersonSuggestion>(`/people/${id(personId)}`),
